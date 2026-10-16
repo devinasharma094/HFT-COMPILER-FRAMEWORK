@@ -1,0 +1,26 @@
+{
+  "model_big.json": {
+    "sha256": "dce337d547899cebe62dd6d70464678e7b6a11f7b5a3183167f21ecd4b99348e",
+    "bytes": 2148386
+  },
+  "vec_big.json": {
+    "sha256": "7dbd80271ea5b3df0c6d3d3b3a978232d8931574c59c9348f5f30e6f23fe62ea",
+    "bytes": 13700773
+  },
+  "generated_c/baseline_model.c": {
+    "sha256": "fab0a8d1845b30c72ea45a49355bb2dd2ef652515754de727a27dcc34c8cee41",
+    "bytes": 3122520
+  },
+  "generated_c/specialized_normal.c": {
+    "sha256": "815e65044187f4b540588e7c2fa800e2130be4b2bb7207d41c452bb7da29bc1e",
+    "bytes": 1252665
+  },
+  "generated_c/dispatch.c": {
+    "sha256": "fbc2e4b385b4e06681aff64f7610dc987f2320c6c0c709cdb1eddd8cc6cebf9b",
+    "bytes": 952
+  },
+  "generated_c/guards.c": {
+    "sha256": "c03b60d351a1c335b6e235373e1341afb4f4cc83721cd04d15076781904a80d5",
+    "bytes": 1168
+  }
+}

@@ -1,0 +1,11 @@
+.DS_Store
+*.o
+*.profdata
+*.profraw
+*.bin
+*.parquet
+*.npz
+*.zip
+__pycache__/
+venv/
+.env
