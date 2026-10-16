@@ -1,0 +1,277 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>HFT Compiler Framework</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one working column. Verdict strip first, then pipeline, then what the compiler did, then certificates, then open issues. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#10161d; --ink2:#46515e; --ink3:#6f7a87; --line:#dde2e8; --grid:#e8ecf0;
+  --accent:#1f5fbf; --accent-soft:#e3edfb;
+  --calm:#2a78d6; --normal:#eb6834; --volatile:#1baf7a;
+  --good:#17803d; --good-bg:#e1f3e8; --warn:#9a6700; --warn-bg:#fbf0d3; --bad:#b42318; --bad-bg:#fde6e3;
+  --kept:#c5ccd5;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1218; --surface:#151c24; --ink:#eaeff4; --ink2:#b4bfcb; --ink3:#8793a0; --line:#27313c; --grid:#1f2832;
+  --accent:#6ea4f0; --accent-soft:#17283f;
+  --calm:#3987e5; --normal:#d95926; --volatile:#199e70;
+  --good:#4cc277; --good-bg:#14301f; --warn:#e2b04a; --warn-bg:#35290d; --bad:#f2786d; --bad-bg:#3a1713;
+  --kept:#3a4552; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1218; --surface:#151c24; --ink:#eaeff4; --ink2:#b4bfcb; --ink3:#8793a0; --line:#27313c; --grid:#1f2832;
+  --accent:#6ea4f0; --accent-soft:#17283f;
+  --calm:#3987e5; --normal:#d95926; --volatile:#199e70;
+  --good:#4cc277; --good-bg:#14301f; --warn:#e2b04a; --warn-bg:#35290d; --bad:#f2786d; --bad-bg:#3a1713;
+  --kept:#3a4552; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:flex-end;padding-bottom:14px;border-bottom:1px solid var(--line)}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--ink2);max-width:62ch}
+.meta{font-family:var(--mono);font-size:12px;color:var(--ink3);text-align:right}
+h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);margin:0 0 10px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.grid{display:grid;gap:16px;min-width:0}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.checks{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+.check{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;width:fit-content}
+.pill.pass{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.fail{background:var(--bad-bg);color:var(--bad)} .pill.na{background:var(--grid);color:var(--ink3)}
+.check b{font-size:13px;font-weight:600} .check .big{font-family:var(--mono);font-size:19px;font-variant-numeric:tabular-nums}
+.check small{color:var(--ink3);font-size:12px}
+.flow{display:flex;gap:0;overflow-x:auto;padding-bottom:4px}
+.stage{flex:1 0 150px;border:1px solid var(--line);background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;position:relative}
+.stage:first-child{border-radius:8px 0 0 8px}.stage:last-child{border-radius:0 8px 8px 0}.stage+.stage{margin-left:-1px}
+.stage b{font-size:13px}.stage code{font-family:var(--mono);font-size:11px;color:var(--accent);overflow-wrap:anywhere}
+.stage span{font-size:12px;color:var(--ink2)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:600;text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 10px 7px 0;border-bottom:1px solid var(--grid);vertical-align:top}
+td.r,th.r{text-align:right}
+.scroll{overflow-x:auto}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink2);margin-bottom:10px}
+.legend span{display:inline-flex;align-items:center}
+.barrow{display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:center;margin:8px 0}
+.barrow>label{font-size:13px;color:var(--ink2)}
+.track{display:flex;gap:2px;height:22px;min-width:0}
+.seg{height:100%;border-radius:0 3px 3px 0;min-width:2px}
+.seg:first-child{border-radius:0 3px 3px 0}
+.vals{font-family:var(--mono);font-size:11px;color:var(--ink3);margin:-2px 0 0 86px}
+.note{font-size:12px;color:var(--ink3);margin:10px 0 0}
+.issue{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--grid)}
+.issue:last-child{border-bottom:0}.issue div{min-width:0}.issue b{font-weight:600}.issue p{margin:2px 0 0;color:var(--ink2)}
+code{font-family:var(--mono);font-size:12px;background:var(--grid);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+svg text{font-family:var(--mono);font-size:10px;fill:var(--ink3)}
+.hist{display:block;width:100%;height:auto}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:6px;z-index:20;max-width:260px;display:none;line-height:1.4}
+.hover{cursor:default}
+.hover:hover{filter:brightness(1.12)}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:10px}
+.toggle button{font:inherit;font-size:12px;padding:4px 12px;background:var(--surface);color:var(--ink2);border:0;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.toggle button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nm{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:12px 14px;font-size:13px}
+.nm b{font-weight:600}
+@media(max-width:520px){.meta{text-align:left}.barrow{grid-template-columns:62px 1fr}.vals{margin-left:72px}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <h1>HFT Compiler Framework</h1>
+    <p>Compiles an XGBoost trading model into regime-specialized C kernels, guarded by a statistical validity certificate (VEC), with a risk firewall and an atomic model swap.</p>
+  </div>
+  <div class="meta">devinasharma094/HFT-COMPILER-FRAMEWORK<br>commit baca525 · 77 files · BTCUSDT 1s features</div>
+</header>
+
+<section>
+  <h2>Checks run on this code</h2>
+  <div class="checks" id="checks"></div>
+</section>
+
+<section>
+  <h2>Pipeline as implemented</h2>
+  <div class="flow" id="flow"></div>
+</section>
+
+<section class="grid g2">
+  <div class="panel">
+    <h2>Branches removed per regime kernel (model_big, 90% coverage)</h2>
+    <div class="legend"><span><i class="dot" style="background:var(--accent)"></i>Eliminated at compile time</span><span><i class="dot" style="background:var(--kept)"></i>Kept (runtime comparison)</span></div>
+    <div id="elim"></div>
+    <p class="note">Each elimination is exact interval reasoning over the same box the guard checks, so the kernel must equal the baseline whenever the guard passes.</p>
+  </div>
+  <div class="panel">
+    <h2>Generated C size</h2>
+    <div class="legend"><span><i class="dot" style="background:var(--ink3)"></i>Baseline</span><span><i class="dot" style="background:var(--calm)"></i>Calm</span><span><i class="dot" style="background:var(--normal)"></i>Normal</span><span><i class="dot" style="background:var(--volatile)"></i>Volatile</span></div>
+    <div id="size"></div>
+    <p class="note">Source size in MB, from <code>generated_c_big/</code>. Smaller code per kernel is the compiler's instruction-cache argument; latency itself was not measured here.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Validity certificate: guard boxes per regime</h2>
+  <div class="toggle" role="group" aria-label="Coverage level">
+    <button id="c90" aria-pressed="true">90% coverage</button><button id="c99" aria-pressed="false">99% coverage</button>
+  </div>
+  <div class="scroll"><table id="boxes"></table></div>
+  <p class="note">A kernel runs only when all three features fall inside its box; anything else falls back to the full baseline model. Boxes are quantile intervals fitted on the calibration split.</p>
+</section>
+
+<section class="grid g2">
+  <div class="panel">
+    <h2>Coverage level changes what can be removed</h2>
+    <div class="scroll"><table id="covcmp"></table></div>
+    <p class="note">At 99% the boxes are wider, so fewer comparisons are provably constant: calm loses all "always no" eliminations and volatile loses all "always yes" ones.</p>
+  </div>
+  <div class="panel">
+    <h2>Model and certificate size</h2>
+    <div class="scroll"><table id="models"></table></div>
+    <p class="note">Every tree is full depth. Splits are spread evenly over the three features, so no feature dominates the model.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Certified firing-rate upper bounds (Clopper-Pearson, 95%) per split</h2>
+  <div class="grid g3" id="hists"></div>
+  <p class="note">Each split in each regime has an upper bound on how often its "yes" branch fires. Splits at or below 0.10 get an <code>UNLIKELY()</code> layout hint (Tier 2, cannot change outputs). Hint counts: <span id="hintsum"></span>.</p>
+</section>
+
+<section class="panel">
+  <h2>Findings from reading the code</h2>
+  <div id="issues"></div>
+</section>
+
+<section class="grid g2">
+  <div class="panel">
+    <h2>Source inventory</h2>
+    <div class="scroll"><table id="inv"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Provenance record (provenance.json)</h2>
+    <div class="scroll"><table id="prov"></table></div>
+    <p class="note">SHA-256 recomputed from the files in the repository.</p>
+  </div>
+</section>
+
+<section class="nm" id="notmeasured"></section>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D={"models":{"model.json":{"file":"model.json","bytes":216432,"n_trees":100,"max_depth":4,"mean_depth":4.0,"split_nodes":1467,"leaves":1567,"features":{"realized_vol":481,"trade_intensity":525,"avg_trade_size":461},"objective":"binary:logistic","base_score":"[4.7209644E-1]","num_feature":"3"},"model_big.json":{"file":"model_big.json","bytes":2148386,"n_trees":300,"max_depth":6,"mean_depth":6.0,"split_nodes":16851,"leaves":17151,"features":{"realized_vol":5402,"trade_intensity":5608,"avg_trade_size":5841},"objective":"binary:logistic","base_score":"[4.7209644E-1]","num_feature":"3"}},"vec":{"vec.json":{"file":"vec.json","bytes":1187091,"coverage":0.9,"confidence":0.95,"n_branch_clauses":4401,"intervals":{"calm":{"realized_vol":[2.964887488445281e-06,3.0052423374418236e-05,768021],"trade_intensity":[3.26,22.27,768021],"avg_trade_size":[1677.6178167247276,4685.2862534463175,768021]},"normal":{"realized_vol":[3.2500718817508836e-05,5.371523950454927e-05,634412],"trade_intensity":[15.703333333333333,44.36,634412],"avg_trade_size":[1682.6495128056938,4825.72626559685,634412]},"volatile":{"realized_vol":[5.6787675753796985e-05,0.000173736649910096,705661],"trade_intensity":[34.13999999999998,209.21,705661],"avg_trade_size":[1792.0129207514176,5224.976848935749,705661]}},"per_regime":{"calm":{"n":1467,"hint_le_0_10":278,"mean_ub":0.6267277638944752,"hist":[166,26,86,138,166,105,91,120,569],"n_envelope_rows":594308},"normal":{"n":1467,"hint_le_0_10":635,"mean_ub":0.46107478578695194,"hist":[584,16,35,82,71,75,75,87,442],"n_envelope_rows":473298},"volatile":{"n":1467,"hint_le_0_10":801,"mean_ub":0.32441180877847187,"hist":[746,21,34,73,98,136,97,156,106],"n_envelope_rows":547796}},"hist_bins":[0,0.02,0.05,0.1,0.25,0.5,0.75,0.9,0.999,1.0001]},"vec_big.json":{"file":"vec_big.json","bytes":13700773,"coverage":0.9,"confidence":0.95,"n_branch_clauses":50553,"intervals":{"calm":{"realized_vol":[2.964887488445281e-06,3.0052423374418236e-05,768021],"trade_intensity":[3.26,22.27,768021],"avg_trade_size":[1677.6178167247276,4685.2862534463175,768021]},"normal":{"realized_vol":[3.2500718817508836e-05,5.371523950454927e-05,634412],"trade_intensity":[15.703333333333333,44.36,634412],"avg_trade_size":[1682.6495128056938,4825.72626559685,634412]},"volatile":{"realized_vol":[5.6787675753796985e-05,0.000173736649910096,705661],"trade_intensity":[34.13999999999998,209.21,705661],"avg_trade_size":[1792.0129207514176,5224.976848935749,705661]}},"per_regime":{"calm":{"n":16851,"hint_le_0_10":2992,"mean_ub":0.6579054347406008,"hist":[2150,300,542,1116,1710,1567,1144,1114,7208],"n_envelope_rows":594308},"normal":{"n":16851,"hint_le_0_10":6836,"mean_ub":0.4761254065702138,"hist":[6167,275,394,857,1182,1065,838,912,5161],"n_envelope_rows":473298},"volatile":{"n":16851,"hint_le_0_10":9004,"mean_ub":0.32207959845043016,"hist":[8402,270,332,879,1302,1719,1223,1602,1122],"n_envelope_rows":547796}},"hist_bins":[0,0.02,0.05,0.1,0.25,0.5,0.75,0.9,0.999,1.0001]},"vec_big99.json":{"file":"vec_big99.json","bytes":13752373,"coverage":0.99,"confidence":0.95,"n_branch_clauses":50553,"intervals":{"calm":{"realized_vol":[8.052356646082148e-07,3.128073029436787e-05,768021],"trade_intensity":[1.75,30.619666666666745,768021],"avg_trade_size":[1035.6956301118569,6679.101124881111,768021]},"normal":{"realized_vol":[3.151289787272815e-05,5.501155908697589e-05,634412],"trade_intensity":[11.54,62.419633333332996,634412],"avg_trade_size":[1178.3189052213527,6501.10591560609,634412]},"volatile":{"realized_vol":[5.533048006908229e-05,0.0003314533766989318,705661],"trade_intensity":[25.816666666666666,486.71833333332944,705661],"avg_trade_size":[1366.4522699332674,7140.701465749267,705661]}},"per_regime":{"calm":{"n":16851,"hint_le_0_10":2489,"mean_ub":0.6567442648820324,"hist":[1188,693,608,1467,1886,1817,1315,1916,5961],"n_envelope_rows":746576},"normal":{"n":16851,"hint_le_0_10":6495,"mean_ub":0.4758785248132916,"hist":[5249,695,551,1075,1314,1241,990,1643,4093],"n_envelope_rows":615667},"volatile":{"n":16851,"hint_le_0_10":8701,"mean_ub":0.3199133977714557,"hist":[7760,516,425,1023,1429,1907,1595,2029,167],"n_envelope_rows":687723}},"hist_bins":[0,0.02,0.05,0.1,0.25,0.5,0.75,0.9,0.999,1.0001]}},"generated":{"generated_c":{"dir":"generated_c","files":{"baseline_model.c":{"bytes":3122520,"lines":68914,"elim_yes":0,"elim_no":0,"kept":16851,"hinted":1,"leaf_returns":17151,"risk_ref":false},"dispatch.c":{"bytes":952,"lines":20,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"guards.c":{"bytes":1168,"lines":14,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"specialized_calm.c":{"bytes":1873610,"lines":37561,"elim_yes":1771,"elim_no":574,"kept":4836,"hinted":1,"leaf_returns":5136,"risk_ref":false},"specialized_normal.c":{"bytes":1252665,"lines":21403,"elim_yes":1236,"elim_no":1131,"kept":2132,"hinted":1,"leaf_returns":2432,"risk_ref":false},"specialized_volatile.c":{"bytes":1698265,"lines":32707,"elim_yes":421,"elim_no":1606,"kept":4186,"hinted":1,"leaf_returns":4486,"risk_ref":false}}},"generated_c_big":{"dir":"generated_c_big","files":{"baseline_model.c":{"bytes":3139371,"lines":68914,"elim_yes":0,"elim_no":0,"kept":16851,"hinted":1,"leaf_returns":17151,"risk_ref":false},"dispatch.c":{"bytes":952,"lines":20,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"flat_model.c":{"bytes":790787,"lines":21,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"guards.c":{"bytes":1168,"lines":14,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"specialized_calm.c":{"bytes":1347408,"lines":23199,"elim_yes":1771,"elim_no":574,"kept":4836,"hinted":817,"leaf_returns":5136,"risk_ref":false},"specialized_normal.c":{"bytes":874139,"lines":12405,"elim_yes":1236,"elim_no":1131,"kept":2132,"hinted":399,"leaf_returns":2432,"risk_ref":false},"specialized_volatile.c":{"bytes":1179691,"lines":20281,"elim_yes":421,"elim_no":1606,"kept":4186,"hinted":363,"leaf_returns":4486,"risk_ref":false}}},"generated_c_big99":{"dir":"generated_c_big99","files":{"baseline_model.c":{"bytes":3139371,"lines":68914,"elim_yes":0,"elim_no":0,"kept":16851,"hinted":1,"leaf_returns":17151,"risk_ref":false},"dispatch.c":{"bytes":952,"lines":20,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"guards.c":{"bytes":1191,"lines":14,"elim_yes":0,"elim_no":0,"kept":0,"hinted":0,"leaf_returns":0,"risk_ref":false},"specialized_calm.c":{"bytes":1842486,"lines":35217,"elim_yes":1775,"elim_no":0,"kept":7983,"hinted":1701,"leaf_returns":8283,"risk_ref":false},"specialized_normal.c":{"bytes":1202758,"lines":19855,"elim_yes":1255,"elim_no":1038,"kept":4013,"hinted":1042,"leaf_returns":4313,"risk_ref":false},"specialized_volatile.c":{"bytes":1591020,"lines":30459,"elim_yes":0,"elim_no":1573,"kept":6844,"hinted":1040,"leaf_returns":7144,"risk_ref":false}}}},"provenance":[{"file":"model_big.json","recorded_sha":"dce337d547899cebe62dd6d70464678e7b6a11f7b5a3183167f21ecd4b99348e","actual_sha":"dce337d547899cebe62dd6d70464678e7b6a11f7b5a3183167f21ecd4b99348e","recorded_bytes":2148386,"actual_bytes":2148386,"match":true},{"file":"vec_big.json","recorded_sha":"7dbd80271ea5b3df0c6d3d3b3a978232d8931574c59c9348f5f30e6f23fe62ea","actual_sha":"7dbd80271ea5b3df0c6d3d3b3a978232d8931574c59c9348f5f30e6f23fe62ea","recorded_bytes":13700773,"actual_bytes":13700773,"match":true},{"file":"generated_c/baseline_model.c","recorded_sha":"fab0a8d1845b30c72ea45a49355bb2dd2ef652515754de727a27dcc34c8cee41","actual_sha":"fab0a8d1845b30c72ea45a49355bb2dd2ef652515754de727a27dcc34c8cee41","recorded_bytes":3122520,"actual_bytes":3122520,"match":true},{"file":"generated_c/specialized_normal.c","recorded_sha":"815e65044187f4b540588e7c2fa800e2130be4b2bb7207d41c452bb7da29bc1e","actual_sha":"815e65044187f4b540588e7c2fa800e2130be4b2bb7207d41c452bb7da29bc1e","recorded_bytes":1252665,"actual_bytes":1252665,"match":true},{"file":"generated_c/dispatch.c","recorded_sha":"fbc2e4b385b4e06681aff64f7610dc987f2320c6c0c709cdb1eddd8cc6cebf9b","actual_sha":"fbc2e4b385b4e06681aff64f7610dc987f2320c6c0c709cdb1eddd8cc6cebf9b","recorded_bytes":952,"actual_bytes":952,"match":true},{"file":"generated_c/guards.c","recorded_sha":"c03b60d351a1c335b6e235373e1341afb4f4cc83721cd04d15076781904a80d5","actual_sha":"c03b60d351a1c335b6e235373e1341afb4f4cc83721cd04d15076781904a80d5","recorded_bytes":1168,"actual_bytes":1168,"match":true}],"inventory":[{"file":"admission_gate.py","lines":141,"bytes":6083},{"file":"atomic_swap.c","lines":51,"bytes":920},{"file":"atomic_swap_hft.c","lines":168,"bytes":3649},{"file":"atomic_swap_hft_concurrent.c","lines":178,"bytes":3860},{"file":"atomic_swap_test.c","lines":71,"bytes":1114},{"file":"backtest_nonoverlap.py","lines":66,"bytes":1732},{"file":"backtest_policy.py","lines":67,"bytes":1665},{"file":"benchmark.c","lines":232,"bytes":10946},{"file":"build_vec.py","lines":187,"bytes":7409},{"file":"calibration_trigger.py","lines":50,"bytes":946},{"file":"drift_monitor.py","lines":157,"bytes":6892},{"file":"dual_drift_trigger.py","lines":19,"bytes":490},{"file":"end_to_end_pipeline.py","lines":80,"bytes":1820},{"file":"export_test_data.py","lines":26,"bytes":1079},{"file":"gen_flat_baseline.py","lines":107,"bytes":4125},{"file":"generate_specialized_code.py","lines":452,"bytes":15122},{"file":"hft_benchmark.c","lines":50,"bytes":1075},{"file":"hft_main.c","lines":32,"bytes":666},{"file":"hft_trading_bridge.c","lines":67,"bytes":1586},{"file":"latency_gate.py","lines":41,"bytes":893},{"file":"process_trades.py","lines":178,"bytes":6051},{"file":"risk_control.c","lines":20,"bytes":345},{"file":"risk_control_good.c","lines":20,"bytes":345},{"file":"risk_equivalence.py","lines":80,"bytes":1625},{"file":"test_calibration.py","lines":14,"bytes":256},{"file":"test_risk.c","lines":13,"bytes":281},{"file":"train_model.py","lines":124,"bytes":4441},{"file":"vec_ir.py","lines":89,"bytes":2525},{"file":"verify_c_python.c","lines":30,"bytes":542}]};
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString('en-US');
+const mb=b=>(b/1048576).toFixed(2);
+const sci=x=>{const a=Math.abs(x);return (a!==0&&(a<0.01||a>=1e5))?x.toExponential(3):(+x.toPrecision(5)).toString()};
+const tip=$('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;
+  let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-8)x=e.clientX-w-14;if(y+h>innerHeight-8)y=e.clientY-h-14;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+function hideTip(){tip.style.display='none'}
+function bindTip(el,html){el.classList.add('hover');el.addEventListener('mousemove',e=>showTip(e,html));el.addEventListener('mouseleave',hideTip);el.addEventListener('touchstart',e=>{const t=e.touches[0];showTip(t,html)},{passive:true})}
+
+/* ---- verification strip: results of runs done against this repository ---- */
+const checks=[
+ {s:'pass',t:'Specialized = baseline',v:'0 / 900,000',d:'mismatches on sampled points inside each guard box (300k per regime, 20% on box edges), compiled from generated_c_big'},
+ {s:'pass',t:'Concurrent atomic swap',v:'0 / 1,000,000',d:'semantic mismatches, 4 threads swapping baseline to specialized normal; outside-envelope input stays on baseline'},
+ {s:'pass',t:'Risk limits',v:'6 / 6',d:'risk_check vectors match the gate\'s expected output [1,0,0,1,1,0] (max position 100, max order 10)'},
+ {s:'pass',t:'Risk firewall',v:'1 violation caught',d:'dependency check passes all kernels in generated_c_big and rejects test_firewall_violation/specialized_normal.c'},
+ {s:'pass',t:'Provenance hashes',v:D.provenance.filter(p=>p.match).length+' / '+D.provenance.length,d:'SHA-256 and byte counts of recorded artifacts match the files'},
+ {s:'fail',t:'Risk equivalence script',v:'cannot run',d:'risk_equivalence.py compares against risk_control_bad.c, which is not in the repository'}
+];
+$('checks').innerHTML=checks.map(c=>`<div class="check"><span class="pill ${c.s}">${c.s==='pass'?'PASS':'FAIL'}</span><b>${c.t}</b><span class="big">${c.v}</span><small>${c.d}</small></div>`).join('');
+
+/* ---- pipeline ---- */
+const stages=[
+ ['Features','process_trades.py','Binance trades to 1s buckets; 300s rolling vol, intensity, avg size; regimes by 33/67% vol quantiles'],
+ ['Train','train_model.py','XGBoost, 30s up/down label; 60/20/20 chronological split'],
+ ['Certify','build_vec.py','Per-regime intervals and per-split firing bounds into the VEC'],
+ ['Compile','generate_specialized_code.py','Emit baseline, 3 specialized kernels, guards, dispatch'],
+ ['Monitor','drift_monitor.py · calibration_trigger.py','Covariate CUSUM and calibration error; either triggers regeneration'],
+ ['Admit','admission_gate.py','Coverage replay, risk vectors, latency SLO'],
+ ['Swap','atomic_swap_hft*.c','Atomic function-pointer swap behind the guard']
+];
+$('flow').innerHTML=stages.map(s=>`<div class="stage"><b>${s[0]}</b><code>${s[1]}</code><span>${s[2]}</span></div>`).join('');
+
+/* ---- elimination bars ---- */
+const G=D.generated.generated_c_big.files, regs=['calm','normal','volatile'], rc={calm:'var(--calm)',normal:'var(--normal)',volatile:'var(--volatile)'};
+let html='';
+regs.forEach(r=>{const f=G['specialized_'+r+'.c'],e=f.elim_yes+f.elim_no,tot=e+f.kept;
+  html+=`<div class="barrow"><label>${r}</label><div class="track" data-r="${r}"><div class="seg" style="width:${e/tot*100}%;background:var(--accent)"></div><div class="seg" style="width:${f.kept/tot*100}%;background:var(--kept)"></div></div></div>
+  <div class="vals">${fmt(e)} of ${fmt(tot)} reachable splits eliminated (${(e/tot*100).toFixed(1)}%)</div>`});
+$('elim').innerHTML=html;
+document.querySelectorAll('#elim .track').forEach(t=>{const r=t.dataset.r,f=G['specialized_'+r+'.c'];
+  const segs=t.children;bindTip(segs[0],`<b>${r}</b><br>always yes: ${fmt(f.elim_yes)}<br>always no: ${fmt(f.elim_no)}`);bindTip(segs[1],`<b>${r}</b><br>kept: ${fmt(f.kept)}<br>with UNLIKELY hint: ${fmt(f.hinted)}`)});
+
+/* ---- size bars ---- */
+const sz=[['baseline',G['baseline_model.c'].bytes,'var(--ink3)'],...regs.map(r=>[r,G['specialized_'+r+'.c'].bytes,rc[r]])];
+const mx=Math.max(...sz.map(x=>x[1]));
+$('size').innerHTML=sz.map(([n,b,c])=>`<div class="barrow"><label>${n}</label><div class="track"><div class="seg" data-n="${n}" style="width:${b/mx*100}%;background:${c}"></div></div></div><div class="vals">${mb(b)} MB${n!=='baseline'?` · ${(b/sz[0][1]*100).toFixed(0)}% of baseline`:''}</div>`).join('');
+document.querySelectorAll('#size .seg').forEach(s=>{const x=sz.find(a=>a[0]===s.dataset.n);bindTip(s,`<b>${x[0]}</b><br>${fmt(x[1])} bytes`)});
+
+/* ---- guard boxes ---- */
+const feats=['realized_vol','trade_intensity','avg_trade_size'];
+function drawBoxes(k){const v=D.vec[k];let h='<tr><th>Regime</th><th>Feature</th><th class="r">Lower</th><th class="r">Upper</th></tr>';
+  regs.forEach(r=>feats.forEach((f,i)=>{const b=v.intervals[r][f];h+=`<tr><td>${i===0?`<i class="dot" style="background:${rc[r]}"></i>${r}`:''}</td><td class="mono">${f}</td><td class="r num">${sci(b[0])}</td><td class="r num">${sci(b[1])}</td></tr>`}));
+  $('boxes').innerHTML=h}
+function setCov(n){drawBoxes(n===90?'vec_big.json':'vec_big99.json');$('c90').setAttribute('aria-pressed',n===90);$('c99').setAttribute('aria-pressed',n===99)}
+$('c90').onclick=()=>setCov(90);$('c99').onclick=()=>setCov(99);setCov(90);
+
+/* ---- coverage compare ---- */
+const G99=D.generated.generated_c_big99.files;
+let ch='<tr><th>Regime</th><th class="r">Elim. @90%</th><th class="r">Elim. @99%</th><th class="r">Size @90%</th><th class="r">Size @99%</th></tr>';
+regs.forEach(r=>{const a=G['specialized_'+r+'.c'],b=G99['specialized_'+r+'.c'];
+ ch+=`<tr><td><i class="dot" style="background:${rc[r]}"></i>${r}</td><td class="r num">${fmt(a.elim_yes+a.elim_no)}</td><td class="r num">${fmt(b.elim_yes+b.elim_no)}</td><td class="r num">${mb(a.bytes)} MB</td><td class="r num">${mb(b.bytes)} MB</td></tr>`});
+$('covcmp').innerHTML=ch;
+
+/* ---- models ---- */
+const M=D.models,mm=Object.values(M);
+$('models').innerHTML='<tr><th></th>'+mm.map(m=>`<th class="r">${m.file}</th>`).join('')+'</tr>'+[
+ ['Trees',m=>m.n_trees],['Depth',m=>m.max_depth],['Split nodes',m=>fmt(m.split_nodes)],['Leaves',m=>fmt(m.leaves)],
+ ['Splits on realized_vol',m=>fmt(m.features.realized_vol)],['Splits on trade_intensity',m=>fmt(m.features.trade_intensity)],['Splits on avg_trade_size',m=>fmt(m.features.avg_trade_size)],
+ ['Objective',m=>m.objective],['File size',m=>mb(m.bytes)+' MB'],
+ ['VEC branch clauses',m=>fmt(D.vec[m.file==='model.json'?'vec.json':'vec_big.json'].n_branch_clauses)]
+].map(([n,f])=>`<tr><td>${n}</td>${mm.map(m=>`<td class="r num">${f(m)}</td>`).join('')}</tr>`).join('');
+
+/* ---- histograms ---- */
+const V=D.vec['vec_big.json'],bins=V.hist_bins;
+const lab=['<.02','.02-.05','.05-.1','.1-.25','.25-.5','.5-.75','.75-.9','.9-1','=1'];
+function hist(r){const h=V.per_regime[r].hist,m=Math.max(...h),W=300,H=140,pl=6,pb=26,pt=14,bw=(W-pl)/h.length;
+  let s=`<svg class="hist" viewBox="0 0 ${W} ${H}" role="img" aria-label="${r} firing-rate bound histogram">`;
+  [0,.5,1].forEach(t=>{const y=pt+(H-pb-pt)*(1-t);s+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`});
+  h.forEach((c,i)=>{const bh=(H-pb-pt)*c/m,x=pl+i*bw+1.5;
+    s+=`<rect class="hover" data-i="${i}" x="${x}" y="${H-pb-bh}" width="${bw-3}" height="${bh}" rx="2" fill="var(--${r})"/>`;
+    s+=`<text x="${x+(bw-3)/2}" y="${H-pb-bh-3}" text-anchor="middle">${c}</text>`;
+    s+=`<text x="${x+(bw-3)/2}" y="${H-10}" text-anchor="middle" style="font-size:8px">${lab[i]}</text>`});
+  return s+'</svg>'}
+$('hists').innerHTML=regs.map(r=>`<div><div style="font-weight:600;margin-bottom:4px"><i class="dot" style="background:${rc[r]}"></i>${r} <span class="mono" style="font-weight:400;color:var(--ink3);font-size:12px">mean bound ${V.per_regime[r].mean_ub.toFixed(3)}</span></div><div id="h_${r}">${hist(r)}</div></div>`).join('');
+regs.forEach(r=>$('h_'+r).querySelectorAll('rect').forEach(el=>{const i=+el.dataset.i;bindTip(el,`<b>${r}</b><br>bound ${lab[i]}: ${fmt(V.per_regime[r].hist[i])} splits`)}));
+$('hintsum').innerHTML=regs.map(r=>`${r} ${fmt(V.per_regime[r].hint_le_0_10)}`).join(', ')+' of '+fmt(V.per_regime.calm.n)+' per regime';
+
+/* ---- findings ---- */
+const iss=[
+ ['fail','risk_equivalence.py refers to a missing file','REFERENCE_FILE is risk_control.c but CANDIDATE_FILE is risk_control_bad.c, which does not exist, so running the script raises an error. The gate in admission_gate.py bypasses it and compares risk_control_good.c with a hard-coded vector instead.'],
+ ['warn','Latency gate is hard-wired to pass','admission_gate.py sets latency_ok = True. The p99 and p99.9 comparison runs only when all four latency arguments are supplied, and even then a failure raises an exception rather than setting the flag.'],
+ ['warn','End-to-end run uses test inputs','end_to_end_pipeline.py sets covariate_triggered = True and calibration_triggered = False by hand, calls the gate with features.parquet, and launches ./atomic_swap, a toy model that returns a + b + c.'],
+ ['warn','Swap tests hard-code the guard','atomic_swap_hft.c and atomic_swap_hft_concurrent.c copy the normal-regime box literally. Numbers match the current guards.c, but they will drift if the VEC is regenerated.'],
+ ['warn','generated_c/ has no layout hints','It holds the same 16,851 splits as generated_c_big but 1 occurrence of UNLIKELY (the macro only), so it was generated without usable branch clauses. generated_c_big is the consistent set.'],
+ ['warn','Risk firewall is a name match','check_risk_dependency searches the kernel source for the names of functions returning int inside the protected region. It catches the injected test but does not analyze calls beyond that text match.'],
+ ['pass','Trading policy and risk limits are separate','hft_trading_bridge.c maps probability to BUY at 0.55 or above and SELL at 0.45 or below, then passes every order through risk_check before acceptance.']
+];
+$('issues').innerHTML=iss.map(i=>`<div class="issue"><span class="pill ${i[0]}">${i[0]==='fail'?'BROKEN':i[0]==='warn'?'REVIEW':'OK'}</span><div><b>${i[1]}</b><p>${i[2]}</p></div></div>`).join('');
+
+/* ---- inventory, provenance ---- */
+const inv=D.inventory.slice().sort((a,b)=>b.lines-a.lines);
+$('inv').innerHTML='<tr><th>File</th><th class="r">Lines</th></tr>'+inv.map(f=>`<tr><td class="mono">${f.file}</td><td class="r num">${fmt(f.lines)}</td></tr>`).join('');
+$('prov').innerHTML='<tr><th>Artifact</th><th class="r">Bytes</th><th>Hash</th></tr>'+D.provenance.map(p=>`<tr><td class="mono">${p.file}</td><td class="r num">${fmt(p.actual_bytes)}</td><td><span class="pill ${p.match?'pass':'fail'}">${p.match?'MATCH':'MISMATCH'}</span></td></tr>`).join('');
+
+$('notmeasured').innerHTML='<b>Not shown, because it needs data that is not in the repository.</b> <code>features.parquet</code>, <code>test_rows.bin</code> and <code>calibration_test_data.npz</code> are gitignored or absent. That means latency (benchmark.c), backtest results (backtest_policy.py, backtest_nonoverlap.py), model accuracy and AUC, drift alarms and calibration error are not on this dashboard. Run those scripts locally and send me the output to add them.';
+</script>
+
+</body></html>
